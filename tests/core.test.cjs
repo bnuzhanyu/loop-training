@@ -1,0 +1,16 @@
+const assert=require('node:assert/strict');
+const C=require('../app/src/main/assets/core.js');
+let p=C.parsePlan('计划：力量\n第1天：全身\n俯卧撑 | 20，20，20，20 | 120,120,150\n深蹲 | 15,15,15,15 | 90\n第2天：核心\n仰卧起坐 | 12,12,12,12 | 90');
+assert.equal(p.days.length,2);assert.equal(C.flatten(p.days[0]).length,8);assert.equal(C.flatten(p.days[0])[2].rest,150);
+assert.deepEqual(C.parsePlan(C.serializePlan(p)).days.map(d=>d.exercises),p.days.map(d=>d.exercises));
+for(const invalid of ['计划：坏\n第1天：A\n俯卧撑 | -1,20 | 90','计划：坏\n第1天：A\n俯卧撑 | 20,20,20,20 | 60,90','计划：空','第1天：A\n俯卧撑 | 10 | 60'])assert.throws(()=>C.parsePlan(invalid));
+assert.equal(C.defaultPlans()[0].days.length,33);assert.equal(C.defaultPlans()[0].days[0].exercises[0].sets.length,5);
+const log=(id,date,actual)=>({id,planId:p.id,planTitle:p.title,dayId:p.days[0].id,dayTitle:p.days[0].title,date,completedAt:date+'T12:00:00+08:00',duration:120,sets:[{name:'俯卧撑',actual,target:20}]});
+let logs=[log('a','2025-12-31',20),log('b','2026-01-01',25),log('c','2026-01-01',30),log('d','2026-01-05',40)];
+assert.deepEqual(C.periodRange('week','2026-01-01'),{start:'2025-12-29',end:'2026-01-05'});
+assert.equal(C.stats(logs,'week','2026-01-01').reps,75);assert.equal(C.stats(logs,'day','2026-01-01').items.length,2);
+assert.equal(C.stats(logs,'month','2026-01-01').reps,95);assert.equal(C.stats(logs,'year','2025-12-31').reps,20);
+assert.equal(C.stats(logs,'month','2026-01-01').days,2);
+assert.equal(C.periodRange('month','2024-02-29').end,'2024-03-01');
+C.validateBackup({version:1,plans:[p],logs});assert.throws(()=>C.validateBackup({version:1,plans:[p,p],logs}));assert.throws(()=>C.validateBackup({version:1,plans:[p],logs:[log('x','2026-02-30',20)]}));assert.throws(()=>C.validateBackup({version:1,plans:[p],logs:[{...logs[0],sets:[{name:'a',actual:-1,target:10}]}]}));
+console.log('PASS: import validation, round trip, 33-day defaults, repeated sessions, day/week/month/year boundaries, leap year, backup validation.');

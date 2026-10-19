@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),C=require('../app/src/main/assets/core.js');
+const p=C.parsePlan('计划：测试\n第1天：A\n俯卧撑 | 10,10 | 60\n第2天：B\n俯卧撑 | 10,10 | 60\n第3天：C\n俯卧撑 | 10,10 | 60');p.startDate='2026-10-20';
+let history=[{id:'old',planId:p.id,planTitle:p.title,dayId:p.days[0].id,dayTitle:p.days[0].title,date:'2026-10-19',completedAt:'2026-10-19T08:00:00Z',duration:900,sets:[{name:'俯卧撑',target:10,actual:10,duration:20}]}];
+assert.equal(C.estimateDay(p.days[0],history).seconds,100);assert.equal(C.estimateDay(p.days[0],history).minutes,2);assert.equal(C.estimateDay(p.days[0],history).fallback,false);
+assert.equal(C.estimateDay(p.days[0],[]).seconds,120);assert.equal(C.estimateDay(p.days[0],[]).fallback,true);assert.equal(C.estimateDay(p.days[0],[{sets:[{name:'俯卧撑',actual:10}],duration:900}]).fallback,true);
+let timed={exercises:[{name:'平板支撑',unit:'seconds',sets:[60,60],rest:[30]}]};assert.equal(C.estimateDay(timed,[]).seconds,150);
+assert.equal(C.completionCount(p,p.days[0],history),1);p.days[0].resetAt='2026-10-19T09:00:00Z';assert.equal(C.completionCount(p,p.days[0],history),0);assert.equal(C.nextDayIndex(p,history),0);assert.equal(C.stats(history,'day','2026-10-19').reps,10);
+history.push({...history[0],id:'new',completedAt:'2026-10-19T10:00:00Z'});assert.equal(C.completionCount(p,p.days[0],history),1);assert.equal(C.nextDayIndex(p,history),1);
+assert.equal(C.scheduleDate(p,p.days[1],1),'2026-10-22');C.postponeFrom(p,1,3);assert.equal(C.scheduleDate(p,p.days[0],0),'2026-10-20');assert.equal(C.scheduleDate(p,p.days[1],1),'2026-10-25');assert.equal(C.scheduleDate(p,p.days[2],2),'2026-10-27');C.postponeFrom(p,2,2);assert.equal(C.scheduleDate(p,p.days[2],2),'2026-10-29');assert.equal(history[0].date,'2026-10-19');assert.throws(()=>C.postponeFrom(p,0,0));assert.throws(()=>C.postponeFrom({...p,startDate:''},0,1));
+let restored=C.validateBackup(JSON.parse(JSON.stringify({version:1,plans:[p],logs:history})));assert.equal(restored.plans[0].days[0].resetAt,p.days[0].resetAt);assert.equal(restored.plans[0].days[2].shiftDays,5);
+console.log('PASS: per-exercise pace with planned rests, no legacy rest double counting, fallback, timed estimate, reset preserves history and allows recompletion, subsequent cumulative delays, metadata backup.');

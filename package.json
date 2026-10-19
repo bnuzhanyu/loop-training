@@ -1,0 +1,13 @@
+{
+  "name": "loop-training",
+  "private": true,
+  "scripts": {
+    "test": "node tests/core.test.cjs && node tests/upgrade.test.cjs && node tests/planning.test.cjs",
+    "test:ui": "node tests/ui.test.cjs",
+    "test:upgrade": "node tests/upgrade-ui.test.cjs",
+    "test:records": "node tests/records-timer-ui.test.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

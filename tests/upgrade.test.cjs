@@ -1,0 +1,10 @@
+const assert=require('node:assert/strict');const C=require('../app/src/main/assets/core.js');
+const p={id:'p',days:[{id:'a'},{id:'b'},{id:'c'}]};
+assert.equal(C.nextDayIndex(p,[]),0);
+assert.equal(C.nextDayIndex(p,[{planId:'p',dayId:'a',date:'2026-10-18'}]),1);
+assert.equal(C.nextDayIndex(p,[{planId:'p',dayId:'c',date:'2026-10-18'},{planId:'p',dayId:'a',date:'2026-10-19'}]),1);
+assert.equal(C.nextDayIndex(p,[{planId:'p',dayId:'b',date:'2026-10-18',completed:false}]),0);
+assert.equal(C.nextDayIndex(p,[{planId:'p',dayId:'c',date:'2026-10-18'}]),2);
+let logs=[{date:'2026-10-19',duration:90,sets:[{name:'平板支撑',unit:'seconds',target:60,actual:75},{name:'俯卧撑',unit:'reps',target:20,actual:25}]}];let s=C.stats(logs,'day','2026-10-19');assert.equal(s.reps,25);assert.equal(s.timedSeconds,75);assert.equal(s.timedExercises['平板支撑'],75);assert.equal(s.exercises['俯卧撑'],25);
+const b={version:1,plans:[],logs:[],settings:{sound:false},bests:[{name:'平板支撑',unit:'seconds',best:80}]};C.validateBackup(b);assert.throws(()=>C.validateBackup({...b,bests:[{name:'x',unit:'kilograms',best:20}]}));
+console.log('PASS: latest completed day navigation, partial-day exclusion, final-day boundary, reps vs seconds statistics, settings and record backup validation.');
