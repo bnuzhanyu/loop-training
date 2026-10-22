@@ -1,0 +1,50 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict'),path=require('node:path'),{pathToFileURL}=require('node:url');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:412,height:915},hasTouch:true}),errors=[];
+ page.on('pageerror',e=>errors.push(e.stack));
+ await page.addInitScript(()=>{window.calls=[];window.Native={load:()=>localStorage.getItem('loop-v1')||'',save:s=>{localStorage.setItem('loop-v1',s);return true},loadDraft:()=>'',saveDraft:()=>{},hasProximity:()=>true,proximity:(on,token)=>{calls.push({on,token});return true},sensor:()=>false,haptic:()=>{},sound:()=>{},trainingMode:()=>{}}});
+ await page.goto(pathToFileURL(path.resolve(__dirname,'../app/src/main/assets/index.html')).href);
+ await page.locator('[data-view=tools]').click();await page.locator('[data-tool=single]').click();await page.locator('[data-action=opensingle]').click();
+ await page.evaluate(()=>{window.fakeNow=10000;inputTime=()=>fakeNow});
+ assert(await page.evaluate(()=>proximityActive));
+ // Touch first, then proximity, including a delayed touch while still near.
+ await page.locator('[data-action=count]').click();assert.equal(await page.evaluate(()=>session.count),1);
+ await page.evaluate(()=>{fakeNow+=100;onProximityRep(proximityToken);onProximityState(proximityToken,true)});
+ assert.equal(await page.evaluate(()=>session.count),1);
+ await page.evaluate(()=>{fakeNow+=2000;inputCount()});assert.equal(await page.evaluate(()=>session.count),1);
+ await page.evaluate(()=>{onProximityState(proximityToken,false);fakeNow+=1000;onProximityRep(proximityToken);onProximityState(proximityToken,true);inputCount()});
+ assert.equal(await page.evaluate(()=>session.count),2);
+ // Every source shares a full second; exactly 1000 ms allows the next cycle.
+ await page.evaluate(()=>{onProximityState(proximityToken,false);fakeNow+=999;inputCount()});assert.equal(await page.evaluate(()=>session.count),2);
+ await page.evaluate(()=>{fakeNow+=1;inputCount()});assert.equal(await page.evaluate(()=>session.count),3);
+ const stale=await page.evaluate(()=>proximityToken);
+ await page.locator('[data-action=pause]').first().click();assert.equal(await page.evaluate(()=>proximityActive),false);
+ await page.evaluate(t=>onProximityRep(t),stale);assert.equal(await page.evaluate(()=>session.count),3);
+ await page.locator('[data-action=pause]').first().click();assert(await page.evaluate(()=>proximityActive));
+ await page.evaluate(t=>onProximityRep(t),stale);assert.equal(await page.evaluate(()=>session.count),3);
+ // Contact itself counts; the synthetic click and later sensor event do not.
+ await page.evaluate(()=>{fakeNow+=1000;onProximityState(proximityToken,false)});
+ await page.locator('h1').dispatchEvent('pointerdown',{pointerType:'touch',isPrimary:true,button:0});assert.equal(await page.evaluate(()=>session.count),4);
+ await page.locator('h1').click();assert.equal(await page.evaluate(()=>session.count),4);
+ await page.evaluate(()=>{fakeNow+=500;onProximityRep(proximityToken)});assert.equal(await page.evaluate(()=>session.count),4);
+ await page.locator('[data-action=pushupinput]').click();assert.equal(await page.evaluate(()=>proximityActive),false);
+ await page.locator('[data-action=pushupinput]').click();assert(await page.evaluate(()=>proximityActive));
+ await page.evaluate(()=>{fakeNow+=1000;session.mode='plan';session.items=[{name:'俯卧撑',unit:'reps',target:5,rest:60,set:1,total:2},{name:'俯卧撑',unit:'reps',target:1,rest:60,set:2,total:2}];renderWorkout();onProximityRep(proximityToken)});
+ assert.equal(await page.evaluate(()=>session.phase),'rest');assert.equal(await page.evaluate(()=>proximityActive),false);
+ await page.locator('[data-action=skip]').click();assert(await page.evaluate(()=>proximityActive));
+ await page.evaluate(()=>{onProximityRep(proximityToken);fakeNow+=1000;onProximityRep(proximityToken)});assert.equal(await page.evaluate(()=>session.count),2);assert.equal(await page.evaluate(()=>session.phase),'work');
+ await page.evaluate(()=>onAppPause());assert.equal(await page.evaluate(()=>proximityActive),false);
+ await page.locator('[data-action=pause]').first().click();await page.evaluate(()=>onProximityUnavailable(proximityToken));assert.equal(await page.evaluate(()=>proximityMode()),false);
+ await page.evaluate(()=>{session=null;stopSensor();view='tools';render()});
+ await page.locator('[data-tool=counter]').click();await page.locator('[data-action=opencounter]').click();
+ const box=await page.locator('.count-hit-area').boundingBox();await page.mouse.click(box.x+8,box.y+box.height/2);
+ assert.equal(await page.evaluate(()=>session.count),1);
+ const plus=await page.locator('.counter-row [data-action=count]').boundingBox();assert(plus.height>=76&&plus.width>150);
+ await page.locator('.counter-row [data-action=count]').click();assert.equal(await page.evaluate(()=>session.count),2);
+ await page.locator('[data-action=minus]').click();assert.equal(await page.evaluate(()=>session.count),1);
+ await page.evaluate(()=>{for(let i=0;i<5;i++)inputCount()});assert.equal(await page.evaluate(()=>session.count),6);
+ assert.deepEqual(errors,[]);await browser.close();
+ console.log('PASS: simultaneous proximity/touch, 999ms rejection and 1000ms acceptance, near-hold dedupe, touch-down counting and synthetic-click rejection, pause/stale callback, auto-rest, next set, final overtime, background pause and unavailable fallback.');
+})().catch(e=>{console.error(e);process.exit(1)});

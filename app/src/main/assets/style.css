@@ -19,3 +19,69 @@ button,#app{-webkit-tap-highlight-color:transparent}.sound-toggle{display:inline
 .row>#start-date{flex:1;min-width:0;width:auto}.row>#start-date+button{flex-shrink:0;white-space:nowrap}.tool-entry>span:nth-child(2){min-width:0}.tool-entry>span:last-child{flex-shrink:0}
 
 .record-reset{font-size:11px;padding:5px 9px;min-height:36px;white-space:nowrap}.time-counter:active{transform:none}
+
+/* Full rectangular counting area, with a prominent manual increment button. */
+.count-hit-area{width:100%;min-height:310px;display:flow-root;touch-action:manipulation;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+.counter-row{width:100%;align-items:stretch}
+.counter-row [data-action="count"]{flex:1;min-height:76px;font-size:30px;font-weight:700;color:var(--accent)}
+.counter-row [data-action="minus"]{min-width:68px}
+
+/* Compact, sortable plan cards. */
+.plan-card{padding:13px 16px;margin-bottom:10px;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:pan-y}
+.plan-card h3{font-size:17px;line-height:1.4;margin:0}.plan-card .progress{margin:10px 0 7px;height:4px}.plan-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}.plan-meta small{font-size:11px;line-height:1.5}.plan-meta small:last-child{text-align:right}
+.plan-placeholder{border:1px dashed #78985d;border-radius:18px;background:#91cfb40b;margin-bottom:10px}.plan-dragging{position:fixed;z-index:50;pointer-events:none;box-shadow:0 14px 38px #0008;border-color:var(--accent);opacity:.97;margin:0}.sorting-plans{user-select:none;-webkit-user-select:none;overscroll-behavior:none}.sorting-plans .plans{cursor:grabbing}#schedule-heading{scroll-margin-top:18px}
+
+.day{scroll-margin-top:18px}
+
+.plan-card{display:flex;align-items:center;gap:12px}.plan-card-body{flex:1;min-width:0}.plan-exercise-icon{display:grid;place-items:center;flex:0 0 38px;width:38px;height:42px;border-radius:11px;background:#26352b;color:var(--accent)}.plan-exercise-icon svg{width:32px;height:32px;pointer-events:none}.plan-card-body h3{overflow-wrap:anywhere}
+
+/* Readable set timer, with total and active durations presented together. */
+.set-time-panel{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;padding:12px 16px;margin:10px 0 0;border:1px solid #43543d;border-radius:16px;background:#1c291d;text-align:left}.set-time-label{font-size:13px;color:var(--green)}.set-time-panel strong{font-size:36px;line-height:1.2;letter-spacing:1px;font-variant-numeric:tabular-nums;color:var(--accent)}.set-time-status{text-align:right;font-size:11px;color:var(--muted)}.record-line{margin-top:10px}.duration-metric{grid-column:1/-1;grid-row:2}.duration-pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:9px}.duration-pair>div+div{border-left:1px solid var(--line);padding-left:14px}.duration-pair b{font-size:26px;overflow-wrap:anywhere;line-height:1.4}.duration-metric .sub{font-size:11px}.duration-pair>div:first-child b{color:var(--accent)}
+
+.metrics:has(.duration-metric){grid-template-columns:repeat(3,minmax(0,1fr))}.metrics:has(.duration-metric)>.metric:not(.duration-metric){padding:14px 10px;min-width:0}.metrics:has(.duration-metric)>.metric:not(.duration-metric) b{font-size:26px}.metrics:has(.duration-metric)>.metric:last-child{grid-column:3;grid-row:1}
+
+.row>#stats-date{flex:1;min-width:0;width:auto}.row>#stats-date+button{flex-shrink:0;white-space:nowrap}.set-time-panel+.counter-row{margin-top:12px}
+
+/* A single-screen workout with one bottom control row. */
+.hero-stats{width:100%;text-align:left;cursor:pointer}.hero-stats:focus-visible{outline:2px solid var(--green);outline-offset:4px}
+.compact-workout{height:100dvh;min-height:620px;display:flex;flex-direction:column;gap:8px;padding:16px 20px 12px;overflow:visible}
+.compact-workout .workout-heading{flex:none}.compact-workout h1{font-size:26px;line-height:1.2}.compact-workout .workout-heading>.sub{margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.compact-workout .setdots{margin:7px 0 0;gap:4px}.compact-workout .setdots i{width:12px;height:4px}
+.compact-workout .count-space,.compact-workout .rest-space{flex:1;min-height:165px;display:flex;align-items:center;justify-content:center;flex-direction:column;width:100%}
+.compact-workout .counter{flex:none;width:clamp(156px,28dvh,238px);height:clamp(156px,28dvh,238px);margin:0 auto;border-width:7px}.compact-workout .counter b{font-size:clamp(65px,10dvh,90px)}.compact-workout .counter small{font-size:12px}.compact-workout .time-counter b,.compact-workout .restcircle b{font-size:clamp(39px,6dvh,55px)}.compact-workout .tap-hint{margin-top:6px;font-size:11px}
+.compact-workout .set-time-panel{flex:none;margin:0;padding:9px 13px;gap:8px}.compact-workout .set-time-panel strong{font-size:36px}.compact-workout .counter-row{flex:none;margin:0;gap:10px}.compact-workout .counter-row [data-action="count"]{min-height:52px;font-size:27px}.compact-workout .counter-row [data-action="minus"]{min-height:44px;min-width:60px}.compact-workout .record-line{margin:0;font-size:11px;flex:none}
+.compact-workout .sensor-controls{flex:none;margin:0;gap:8px;min-height:34px}.compact-workout .sensor-controls small{font-size:10px;line-height:1.3}.compact-workout .sensor-controls .icon{min-height:34px;padding:6px 10px;white-space:nowrap}
+.workout-actions{display:grid;grid-template-columns:minmax(54px,.8fr) minmax(0,3fr) minmax(54px,.8fr);gap:8px;align-items:center;flex:none;margin-top:2px}.workout-actions .workout-primary{min-height:58px;padding:10px 8px;font-size:17px}.workout-actions .compact-control{min-height:44px;padding:8px 6px;font-size:12px;font-weight:500}.compact-workout .elapsed-line{margin:0;font-size:11px;flex:none}.compact-workout .rest-add{margin:0;flex:none}.compact-workout .rest-add button{padding:10px 5px;min-height:44px}
+@media(max-height:720px){.compact-workout{padding:12px 16px 10px;gap:6px}.compact-workout h1{font-size:24px}.compact-workout .counter{width:152px;height:152px}.compact-workout .counter b{font-size:66px}.compact-workout .time-counter b,.compact-workout .restcircle b{font-size:39px}.compact-workout .counter-row [data-action="count"]{min-height:44px;font-size:24px}.workout-actions .workout-primary{min-height:52px;font-size:16px}}
+
+.compact-workout.utility-workout .counter-row [data-action="count"]{min-height:76px;font-size:30px}
+
+.generator-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:12px 0}.generator-grid>div{min-width:0}.generator-grid label{margin:0 0 7px;font-size:12px;min-height:20px}.generator-grid .value-picker{width:100%;min-width:0;gap:6px}.generator-grid input[type=date]{width:100%;min-width:0;min-inline-size:0;padding:10px 8px;font-size:13px;min-height:48px}.generator-grid+.sub{font-size:12px}
+
+/* Fit the statistics summary and distribution chart above the fold. */
+.stats-main{padding:18px 20px 100px}.stats-main>h1{font-size:26px;line-height:1.3;margin-bottom:12px}.stats-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stats-filters select,.stats-filters input{width:100%;min-width:0;min-inline-size:0;padding:9px 10px;min-height:44px;font-size:13px}.stats-filters input:disabled{opacity:.45}.stats-main .tabs{margin:12px 0 9px;padding:4px}.stats-main .tabs button{padding:7px}.stats-period{min-height:36px}.stats-period b{font-size:13px}.stats-period .icon{min-height:34px;min-width:40px;padding:3px 10px}.stats-main .metrics{margin:10px 0;gap:8px}.stats-main .metrics>.metric:not(.duration-metric){padding:10px}.stats-main .metrics>.metric:not(.duration-metric) b{font-size:24px;line-height:1.35}.stats-main .metric small{font-size:11px}.stats-main .duration-metric{padding:11px 13px}.stats-main .duration-pair{margin:0;gap:10px}.stats-main .duration-pair b{font-size:23px;line-height:1.35}.stats-main .stats-distribution{padding:12px 14px;margin-bottom:14px}.stats-main .chart{height:96px;margin:9px 0 0;gap:4px}.stats-main .annual-chart{overflow-x:auto}.stats-main .annual-chart .barwrap{min-width:32px}.stats-main .annual-chart .barwrap small{font-size:10px}
+@media(max-height:700px){.stats-main{padding-top:12px}.stats-main>h1{font-size:24px;margin-bottom:8px}.stats-main .tabs{margin-top:9px}.stats-main .chart{height:88px}.stats-main .metrics{margin:8px 0}}
+
+/* Today shortcuts and a tighter count area. */
+.stats-filters{grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:8px}.stats-date-field{display:flex;align-items:center;gap:5px;min-width:0}.stats-date-field #stats-date{flex:1;width:0;min-width:0;padding:9px 6px;font-size:12px}.today-shortcut{background:transparent;color:var(--accent);font-size:12px;white-space:nowrap;padding:6px 2px;min-width:34px;min-height:34px;flex:none}.stats-period-date{display:flex;justify-content:center;align-items:center;gap:7px;min-width:0}.stats-period-date b{font-size:12px}.compact-workout:not(.utility-workout) .count-space{flex:0 0 auto;min-height:0;padding:10px 0 6px}
+/* Only actual edit controls may show selection handles or an insertion caret. */
+*{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;caret-color:transparent}input,textarea,[contenteditable]:not([contenteditable="false"]){-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;caret-color:auto}
+
+.plan-exercise-icon{position:relative;overflow:visible}.today-plan-badge{position:absolute;right:-3px;top:-3px;width:11px;height:11px;background:var(--accent);border:2px solid var(--bg);border-radius:50%;box-shadow:0 0 0 1px #35472e}#home-date{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.plan-card.plan-paused{filter:grayscale(1);opacity:.52}.plan-card.plan-paused.plan-dragging{opacity:.8}
+
+.plans{position:relative}.plan-card{position:relative;padding:0;overflow:hidden;display:block}.plan-card-front{position:relative;z-index:1;display:flex;align-items:center;gap:12px;width:100%;height:88px;padding:12px 16px;background:var(--card);color:var(--ink);text-align:left;border-radius:19px;transition:width .2s ease,padding .2s ease,gap .2s ease;touch-action:pan-y}.plan-card h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.plan-meta small{white-space:nowrap}.plan-meta small:last-child{overflow:hidden;text-overflow:ellipsis;min-width:0}.plan-inline-actions{position:absolute;right:0;top:0;bottom:0;width:48px;display:flex;flex-direction:column;visibility:hidden;pointer-events:none}.plan-inline-actions .icon{flex:1;min-width:0;min-height:44px;border:0;border-radius:0;padding:4px 2px;font-size:12px;background:#2b3d31}.plan-inline-actions .danger-text{color:#ffb4a5;background:#432c27}.plan-management-active .plan-inline-actions{visibility:visible;pointer-events:auto}.plan-management-active .plan-card-front{width:calc(100% - 48px);padding-left:12px;padding-right:10px;gap:8px}.plan-management-active .plan-card-front{animation:plan-edit-wiggle .42s ease-in-out infinite alternate;transform-origin:center center}.plan-management-active .plan-card:nth-child(even) .plan-card-front{animation-delay:-.21s}.plan-card.plan-managing{cursor:grab}.plan-card.plan-paused.plan-managing{filter:none;opacity:1}.plan-paused.plan-managing .plan-card-front{filter:grayscale(1);opacity:.52}.plan-paused.plan-managing .plan-inline-actions{z-index:2}.plan-card.plan-dragging{position:fixed;top:0;will-change:transform;transform-origin:center center}.plan-dragging .plan-card-front{transition:none}
+@keyframes plan-edit-wiggle{from{transform:rotate(-.35deg)}to{transform:rotate(.35deg)}}
+@media(prefers-reduced-motion:reduce){.plan-card-front{transition:none}.plan-management-active .plan-card-front{animation:none}}
+.plan-exercise-icon{flex-basis:48px;width:48px;height:48px}.plan-icon-crop{display:block;position:relative;width:44px;height:44px;overflow:hidden;pointer-events:none}.plan-icon-crop img{position:absolute;max-width:none;mix-blend-mode:lighten;pointer-events:none}
+
+.plan-list-tools{display:flex;gap:16px;align-items:center}
+
+.detail-main{height:calc(100dvh - 70px - max(14px,env(safe-area-inset-bottom)));padding:12px 18px 0;display:flex;flex-direction:column;min-height:0;overflow:hidden}.detail-titlebar{display:flex;align-items:center;gap:12px;flex:none;padding-bottom:12px;border-bottom:1px solid var(--line);background:var(--bg)}.detail-titlebar .icon{flex:none;padding:5px 13px;min-width:42px;font-size:25px;line-height:1}.detail-titlebar h1{font-size:22px;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.day-list{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:10px 0 18px}.day-list .day{scroll-margin-top:12px}.day-list .day:last-child{margin-bottom:0}
+
+/* Compact tool choices and a larger dedicated timer display. */
+#home-english{text-transform:uppercase;letter-spacing:2px;line-height:1.5;max-width:100%}
+.tool-menu{margin-top:18px}.tool-entry{padding:10px 14px;gap:10px;margin-bottom:8px;min-height:70px}.tool-entry h3{font-size:16px;line-height:1.4}.tool-entry .sub{display:block;font-size:11px;line-height:1.4;margin-top:2px}.tool-entry .tool-symbol{flex:0 0 36px;width:36px;height:36px;min-width:36px;display:grid;place-items:center}
+.compact-workout.timer-workout .time-counter{width:min(calc(100vw - 48px),clamp(260px,43dvh,340px));height:min(calc(100vw - 48px),clamp(260px,43dvh,340px));border-width:8px}.compact-workout.timer-workout .time-counter b{font-size:clamp(64px,18vw,84px);letter-spacing:-2px;white-space:nowrap;line-height:1.2}.compact-workout.timer-workout .time-counter b.long-time{font-size:clamp(40px,11vw,50px);letter-spacing:-1px}.compact-workout.timer-workout .time-counter small{font-size:13px;max-width:85%;margin-top:10px;line-height:1.5}
+
+.tool-entry .tool-icon{display:block;width:36px;height:36px;flex:none}

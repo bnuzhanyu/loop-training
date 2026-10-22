@@ -1,0 +1,11 @@
+const assert=require('node:assert/strict'),C=require('../app/src/main/assets/core.js');
+const logs=[{id:'mixed',date:'2026-10-22',duration:200,sets:[{name:'深蹲',actual:20,duration:40},{name:'平板支撑',unit:'seconds',actual:60,duration:60}]},{id:'sides',date:'2026-10-22',duration:100,sets:[{name:'侧平板（左）',unit:'seconds',actual:20,duration:20},{name:'侧平板（右）',unit:'seconds',actual:20,duration:20}]},{id:'older',date:'2026-10-21',duration:300,sets:[{name:'深蹲',actual:40}]}];
+let s=C.stats(logs,'day','2026-10-22');assert.equal(s.seconds,300);assert.equal(s.activeSeconds,140);assert.equal(s.activeUnknownSets,0);
+s=C.stats(logs,'day','2026-10-22','深蹲');assert.equal(s.reps,20);assert.equal(s.seconds,200);assert.equal(s.activeSeconds,40);assert.equal(s.items.length,1);assert.equal(s.items[0].sets.length,1);assert.equal(logs[0].sets.length,2);
+s=C.stats(logs,'day','2026-10-22','侧平板');assert.equal(s.timedSeconds,40);assert.equal(s.activeSeconds,40);assert.equal(s.items.length,1);
+s=C.stats(logs,'month','2026-10-22','深蹲');assert.equal(s.activeUnknownSets,1);assert.equal(s.activeSeconds,40);assert.equal(s.days,2);
+assert.equal(C.activeTime({sets:[{unit:'seconds',actual:60}]}).seconds,60);assert.equal(C.activeTime({sets:[{actual:10}]}).unknownSets,1);
+console.log('PASS: active/total separation, mixed-session filtering without data mutation, left/right grouping, period filtering and unknown legacy duration.');
+s=C.stats(logs,'all','1900-01-01','深蹲');assert.equal(s.reps,60);assert.equal(s.items.length,2);assert.equal(s.activeUnknownSets,1);assert.equal(s.seconds,500);
+assert.deepEqual(C.periodRange('all','2026-10-22'),{start:null,end:null});
+console.log('PASS: all-time statistics ignores date anchor and preserves exercise filtering.');

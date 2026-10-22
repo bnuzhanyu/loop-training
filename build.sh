@@ -18,6 +18,6 @@ cp .build/resources.apk .build/unsigned.apk
 if [ ! -f .build/development.jks ]; then
  "$JAVA_BASE/bin/keytool" -genkeypair -keystore .build/development.jks -storepass android -keypass android -alias loopdev -keyalg RSA -keysize 2048 -validity 10000 -dname 'CN=Loop Development' >/dev/null 2>&1
 fi
-JAVA_HOME="$JAVA_BASE" "$BT/apksigner" sign --ks .build/development.jks --ks-pass pass:android --key-pass pass:android --out ../LoopTraining-1.2.1.apk .build/aligned.apk
-JAVA_HOME="$JAVA_BASE" "$BT/apksigner" verify --verbose ../LoopTraining-1.2.1.apk
-printf '\nBuilt: ../LoopTraining-1.2.1.apk\n'
+JAVA_HOME="$JAVA_BASE" "$BT/apksigner" sign --ks .build/development.jks --ks-pass pass:android --key-pass pass:android --out ../LoopTraining-1.6.5.apk .build/aligned.apk
+JAVA_HOME="$JAVA_BASE" "$BT/apksigner" verify --verbose ../LoopTraining-1.6.5.apk
+printf '\nBuilt: ../LoopTraining-1.6.5.apk\n'

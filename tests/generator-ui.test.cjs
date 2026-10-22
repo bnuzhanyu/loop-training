@@ -1,0 +1,32 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),{pathToFileURL}=require('node:url');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});
+ const page=await browser.newPage({viewport:{width:412,height:915}}),errors=[];page.on('pageerror',e=>errors.push(e.stack));
+ await page.goto(pathToFileURL(path.resolve(__dirname,'../app/src/main/assets/index.html')).href);
+ await page.locator('[data-action=new]').click();assert.equal(await page.evaluate(()=>view),'generator');assert.equal(await page.locator('#gen-frequency').inputValue(),'3');assert.equal(await page.locator('#gen-rounds').inputValue(),'4');const current=await page.locator('[data-input=gen-current]').boundingBox(),goal=await page.locator('[data-input=gen-goal]').boundingBox();assert(Math.abs(current.y-goal.y)<2);assert(goal.x>current.x);
+ await page.locator('#gen-exercise').selectOption('侧平板');assert.equal(await page.locator('#gen-current').getAttribute('data-unit'),'seconds');
+ await page.locator('[data-action=pickvalue][data-input=gen-weeks]').click();await page.locator('#pick-number').selectOption('2');await page.locator('[data-picker-confirm]').click();
+ await page.locator('#gen-start').fill('2026-10-22');await page.locator('[data-action=generatepreview]').click();
+ assert((await page.locator('#modal').innerText()).includes('6 次训练'));assert((await page.locator('#modal').innerText()).includes('侧平板（左）'));
+ await page.locator('[data-action=saveplan]').click();assert((await page.locator('.day').first().innerText()).includes('秒'));
+ assert((await page.locator('.day').nth(3).innerText()).includes('2026-10-29'));
+ await page.locator('[data-action=start]').first().click();assert.equal(await page.locator('#target-0').getAttribute('data-unit'),'seconds');await page.locator('[data-action=begin]').click();
+ assert.equal(await page.evaluate(()=>isTimed()),true);await page.evaluate(()=>{session.lastTick=Date.now()-currentItem().target*1000-100;tick()});assert.equal(await page.evaluate(()=>session.phase),'rest');
+ await page.locator('[data-action=skip]').click();assert((await page.locator('h1').innerText()).includes('右'));assert.equal(await page.evaluate(()=>isTimed()),true);
+ await page.locator('[data-action=exit]').first().click();await page.locator('[data-action=discard]').click();
+ await page.locator('[data-view=tools]').click();await page.locator('[data-tool=single]').click();
+ const names=await page.locator('#single-name option').allTextContents();for(const name of ['臀桥','侧平板','靠墙静蹲','保加利亚蹲','提踵','飞鸟式'])assert(names.includes(name));assert(!names.includes('弓步蹲'));
+ await page.locator('#single-name').selectOption('飞鸟式');assert((await page.locator('#single-hint').innerText()).includes('四点跪姿'));
+ await page.locator('#single-name').selectOption('保加利亚蹲');await page.locator('[data-action=opensingle]').click();assert.equal(await page.evaluate(()=>session.items.length),2);
+ await page.locator('[data-action=exit]').first().click();await page.locator('[data-action=discard]').click();
+ await page.locator('[data-view=plans]').click();await page.locator('[data-action=new]').click();await page.locator('[data-action=generator]').click();await page.locator('#gen-exercise').selectOption('深蹲');
+ // Max picker values, and both creation modes preserve their entered draft.
+ await page.locator('[data-action=pickvalue][data-input=gen-frequency]').click();await page.locator('#pick-number').selectOption('21');await page.locator('[data-picker-confirm]').click();
+ await page.locator('[data-action=pickvalue][data-input=gen-rounds]').click();await page.locator('#pick-number').selectOption('10');await page.locator('[data-picker-confirm]').click();
+ await page.locator('[data-action=generatortext]').click();await page.locator('#plantext').fill('计划：保留文本\n第1天：测试\n深蹲 | 10 | 90');
+ await page.locator('[data-action=generator]').click();assert.equal(await page.locator('#gen-frequency').inputValue(),'21');assert.equal(await page.locator('#gen-rounds').inputValue(),'10');
+ await page.locator('[data-action=generatortext]').click();assert((await page.locator('#plantext').inputValue()).includes('保留文本'));await page.locator('[data-action=generator]').click();
+ const out=path.resolve(__dirname,'../.build/test-results');fs.mkdirSync(out,{recursive:true});await page.screenshot({path:path.join(out,'generator-form.png'),fullPage:true});
+ await page.locator('[data-action=generatepreview]').click();assert((await page.locator('#modal').innerText()).includes('42 次训练'));assert((await page.locator('#modal').innerText()).includes('当天第 1/3 次'));await page.screenshot({path:path.join(out,'generator-preview.png')});
+ assert.deepEqual(errors,[]);await browser.close();console.log('PASS: picker-based generator, preview/save/calendar, timed left/right plan and auto-rest, new single exercises, description and bilateral single session.');
+})().catch(e=>{console.error(e);process.exit(1)});

@@ -1,0 +1,20 @@
+const {chromium}=require('playwright'),assert=require('node:assert/strict'),path=require('node:path'),fs=require('node:fs'),{pathToFileURL}=require('node:url');
+(async()=>{
+ const browser=await chromium.launch({executablePath:process.env.CHROME_PATH||'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',headless:true});const page=await browser.newPage({viewport:{width:412,height:915}}),errors=[];page.on('pageerror',e=>errors.push(e.stack));
+ await page.goto(pathToFileURL(path.resolve(__dirname,'../app/src/main/assets/index.html')).href);
+ await page.evaluate(()=>{const date=C.dateKey(new Date());data.logs=[{id:'mixed',planId:'x',dayId:'x',planTitle:'混合',dayTitle:'训练',date,completedAt:new Date().toISOString(),duration:200,sets:[{name:'深蹲',actual:20,target:20,duration:40},{name:'平板支撑',unit:'seconds',actual:60,target:60,duration:60}]},{id:'sides',planId:'x',dayId:'y',planTitle:'核心',dayTitle:'侧平板',date,completedAt:new Date().toISOString(),duration:100,sets:[{name:'侧平板（左）',unit:'seconds',actual:20,target:20,duration:20},{name:'侧平板（右）',unit:'seconds',actual:20,target:20,duration:20}]}];save();view='stats';render()});
+ assert.equal(await page.locator('#stats-active-time').innerText(),'2分20秒');assert.equal(await page.locator('#stats-total-time').innerText(),'5分');
+ await page.locator('#stats-exercise').selectOption('深蹲');assert.equal(await page.locator('#stats-active-time').innerText(),'40秒');assert.equal(await page.locator('#stats-total-time').innerText(),'3分20秒');assert.equal(await page.locator('[data-action=log]').count(),1);
+ for(const kind of ['week','month','year','all']){await page.locator('[data-kind='+kind+']').click();assert.equal(await page.locator('#stats-exercise').inputValue(),'深蹲');assert.equal(await page.locator('#stats-active-time').innerText(),'40秒')}
+ await page.locator('#stats-exercise').selectOption('侧平板');assert.equal(await page.locator('#stats-active-time').innerText(),'40秒');assert((await page.locator('.chart').locator('..').innerText()).includes('计时动作时长'));
+ const out=path.resolve(__dirname,'../.build/test-results');fs.mkdirSync(out,{recursive:true});await page.screenshot({path:path.join(out,'stats-filter-duration.png'),fullPage:true});
+ // Record two work sets with 20s rest in between; a pause must not accrue work time.
+ await page.evaluate(()=>{session=null;const p=C.parsePlan('计划：时间验证\n第1天：计次\n深蹲 | 1,1 | 120');data.plans.push(p);prepared={p,d:p.days[0]};startSetup(p,p.days[0])});await page.locator('[data-action=begin]').click();
+ await page.evaluate(()=>{session.setElapsed=10;session.elapsed=10;session.lastTick=Date.now();updateWorkoutNumbers()});assert.equal(await page.locator('#set-clock').innerText(),'00:10');assert.equal(await page.locator('#set-clock').evaluate(e=>parseFloat(getComputedStyle(e).fontSize)),36);
+ await page.locator('[data-action=pause]').first().click();const frozen=await page.evaluate(()=>session.setElapsed);await page.evaluate(()=>{session.lastTick=Date.now()-5000;tick()});assert.equal(await page.evaluate(()=>session.setElapsed),frozen);await page.locator('[data-action=pause]').first().click();
+ await page.screenshot({path:path.join(out,'prominent-set-time.png'),fullPage:true});
+ await page.locator('button[data-action=count]').first().click();assert.equal(await page.evaluate(()=>session.phase),'rest');await page.evaluate(()=>{session.lastTick=Date.now()-20000;tick()});await page.locator('[data-action=skip]').click();
+ await page.evaluate(()=>{session.setElapsed=5;session.elapsed+=5;session.lastTick=Date.now()});await page.locator('button[data-action=count]').first().click();await page.locator('[data-action=finishset]').click();await page.locator('[data-action=confirmset]').click();
+ const log=await page.evaluate(()=>data.logs.at(-1));assert.equal(log.activeDuration,15);assert(log.duration>=35&&log.duration<38);assert.equal(log.sets.reduce((n,s)=>n+s.duration,0),15);
+ assert.deepEqual(errors,[]);await browser.close();console.log('PASS: filter persists across day/week/month/year, mixed and timed stats, prominent clock, paused time exclusion, and saved active duration excludes rest.');
+})().catch(e=>{console.error(e);process.exit(1)});

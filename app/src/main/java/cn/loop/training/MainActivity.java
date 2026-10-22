@@ -14,11 +14,15 @@ import org.json.JSONObject;
 
 public class MainActivity extends Activity implements SensorEventListener {
  private WebView web;
+ private String reminderPlanId="";
  private SoundPool soundPool;
  private final int[] sounds=new int[4];
  private final boolean[] soundReady=new boolean[4];
  private SensorManager sensors;
- private Sensor accelerometer,gravitySensor;
+ private Sensor accelerometer,gravitySensor,proximitySensor;
+ private SensorEventListener proximityListener;
+ private int proximityToken=0;
+ private final ProximityCounter proximityCounter=new ProximityCounter();
  private boolean sensorActive=false,hasGravity=false;
  private final double[] gravity=new double[3];
  private final MotionCounter counter=new MotionCounter();
@@ -29,6 +33,7 @@ public class MainActivity extends Activity implements SensorEventListener {
  @Override public void onCreate(Bundle state){
   super.onCreate(state);
   prefs=getSharedPreferences("loop",MODE_PRIVATE);
+  reminderPlanId=getIntent().getStringExtra("reminderPlanId");
   soundPool=new SoundPool.Builder().setMaxStreams(8).setAudioAttributes(new AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION).build()).build();
   soundPool.setOnLoadCompleteListener((pool,id,status)->{for(int n=0;n<sounds.length;n++)if(sounds[n]==id)soundReady[n]=status==0;});
   String[] names={"up","down","glass","target"};
@@ -37,6 +42,7 @@ public class MainActivity extends Activity implements SensorEventListener {
   sensors=(SensorManager)getSystemService(SENSOR_SERVICE);
   accelerometer=sensors.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
   gravitySensor=sensors.getDefaultSensor(Sensor.TYPE_GRAVITY);
+  proximitySensor=sensors.getDefaultSensor(Sensor.TYPE_PROXIMITY);
   getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
   getWindow().setStatusBarColor(Color.rgb(16,21,20));
   getWindow().setNavigationBarColor(Color.rgb(16,21,20));
@@ -55,8 +61,8 @@ public class MainActivity extends Activity implements SensorEventListener {
    @Override public boolean shouldOverrideUrlLoading(WebView v,WebResourceRequest r){return !r.getUrl().toString().equals("https://loop.local/index.html");}
    @Override public WebResourceResponse shouldInterceptRequest(WebView v,WebResourceRequest r){
     android.net.Uri u=r.getUrl();String path=u.getPath();
-    if("https".equals(u.getScheme())&&"loop.local".equals(u.getHost())&&path!=null&&path.matches("/(index\\.html|app\\.js|core\\.js|effects\\.js|tools\\.js|training\\.js|picker\\.js|schedule\\.js|style\\.css)")){
-     try {String mime=path.endsWith("html")?"text/html":path.endsWith("css")?"text/css":"application/javascript";return new WebResourceResponse(mime,"UTF-8",getAssets().open(path.substring(1)));}catch(IOException e){}
+    if("https".equals(u.getScheme())&&"loop.local".equals(u.getHost())&&path!=null&&path.matches("/(index\\.html|app\\.js|core\\.js|effects\\.js|tools\\.js|training\\.js|picker\\.js|schedule\\.js|generator\\.js|generator-ui\\.js|plan-list\\.js|daily\\.js|reminders\\.js|exercise-icons\\.png|style\\.css)")){
+     try {String mime=path.endsWith("png")?"image/png":path.endsWith("html")?"text/html":path.endsWith("css")?"text/css":"application/javascript";return new WebResourceResponse(mime,"UTF-8",getAssets().open(path.substring(1)));}catch(IOException e){}
     }
     return new WebResourceResponse("text/plain","UTF-8",new ByteArrayInputStream(new byte[0]));
    }
@@ -67,7 +73,7 @@ public class MainActivity extends Activity implements SensorEventListener {
  private void js(String code){handler.post(()->{if(web!=null)web.evaluateJavascript(code,null);});}
  public final class Bridge {
   @JavascriptInterface public String load(){return prefs.getString("data","");}
-  @JavascriptInterface public synchronized boolean save(String s){if(s==null||s.length()>15000000)return false;return prefs.edit().putString("data",s).commit();}
+  @JavascriptInterface public synchronized boolean save(String s){if(s==null||s.length()>15000000)return false;boolean saved=prefs.edit().putString("data",s).commit();if(saved)handler.post(()->DailyReminders.schedule(MainActivity.this));return saved;}
   @JavascriptInterface public String loadDraft(){return prefs.getString("draft","");}
   @JavascriptInterface public void saveDraft(String s){if(s!=null&&s.length()<500000)prefs.edit().putString("draft",s).apply();}
   @JavascriptInterface public void copy(String s){handler.post(()->((ClipboardManager)getSystemService(CLIPBOARD_SERVICE)).setPrimaryClip(ClipData.newPlainText("循练",s)));}
@@ -78,6 +84,13 @@ public class MainActivity extends Activity implements SensorEventListener {
   @JavascriptInterface public void trainingMode(boolean active){handler.post(()->{if(Build.VERSION.SDK_INT>=30){WindowInsetsController c=getWindow().getInsetsController();if(c!=null){c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);if(active)c.hide(WindowInsets.Type.systemBars());else c.show(WindowInsets.Type.systemBars());}}else{getWindow().getDecorView().setSystemUiVisibility(active?View.SYSTEM_UI_FLAG_FULLSCREEN|View.SYSTEM_UI_FLAG_HIDE_NAVIGATION|View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY:View.SYSTEM_UI_FLAG_VISIBLE);}});}
   @JavascriptInterface public void haptic(){handler.post(()->web.performHapticFeedback(HapticFeedbackConstants.KEYBOARD_TAP));}
   @JavascriptInterface public boolean sensor(boolean on,double sensitivity){if(accelerometer==null)return false;handler.post(()->setSensor(on,sensitivity));return true;}
+  @JavascriptInterface public boolean hasProximity(){return proximitySensor!=null;}
+  @JavascriptInterface public boolean proximity(boolean on,int token){handler.post(()->setProximity(on,token));return proximitySensor!=null;}
+  @JavascriptInterface public String reminderSettings(){return DailyReminders.settings(MainActivity.this);}
+  @JavascriptInterface public void configureReminders(boolean enabled,int minute){if(minute<0||minute>1439)return;prefs.edit().putBoolean("reminderEnabled",enabled).putInt("reminderMinute",minute).apply();handler.post(()->{if(enabled&&Build.VERSION.SDK_INT>=33&&checkSelfPermission("android.permission.POST_NOTIFICATIONS")!=android.content.pm.PackageManager.PERMISSION_GRANTED)requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"},903);DailyReminders.schedule(MainActivity.this);if(!enabled)getSystemService(android.app.NotificationManager.class).cancel(903);js("window.onRemindersChanged&&window.onRemindersChanged()");});}
+  @JavascriptInterface public void notificationSettings(){handler.post(()->startActivity(new Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName())));}
+  @JavascriptInterface public void testReminder(){handler.post(()->{boolean sent=DailyReminders.notifyToday(MainActivity.this,true);js("window.toast&&window.toast("+JSONObject.quote(sent?"测试通知已发送":"请先允许系统通知")+")");});}
+  @JavascriptInterface public synchronized String consumeReminderPlan(){String id=reminderPlanId;reminderPlanId="";return id==null?"":id;}
   @JavascriptInterface public void minimize(){handler.post(()->moveTaskToBack(true));}
  }
  private android.widget.NumberPicker numberWheel(int min,int max,int value){android.widget.NumberPicker picker=new android.widget.NumberPicker(this);picker.setMinValue(min);picker.setMaxValue(max);picker.setValue(Math.max(min,Math.min(max,value)));picker.setWrapSelectorWheel(false);picker.setDescendantFocusability(android.widget.NumberPicker.FOCUS_BLOCK_DESCENDANTS);return picker;}
@@ -91,7 +104,7 @@ public class MainActivity extends Activity implements SensorEventListener {
   android.widget.NumberPicker first=numberWheel(timed?0:min,timed?24:max,timed?initial/3600:initial);
   android.widget.NumberPicker minutes=numberWheel(0,59,(initial/60)%60),seconds=numberWheel(0,59,initial%60);
   android.widget.NumberPicker[] pickers=timed?new android.widget.NumberPicker[]{first,minutes,seconds}:new android.widget.NumberPicker[]{first};
-  String[] labels=timed?new String[]{"时","分","秒"}:new String[]{"days".equals(unit)?"天":"次"};
+  String[] labels=timed?new String[]{"时","分","秒"}:new String[]{"days".equals(unit)?"天":"weeks".equals(unit)?"周":"rounds".equals(unit)?"轮":"sets".equals(unit)?"组":"次"};
   for(int n=0;n<pickers.length;n++){android.widget.LinearLayout col=new android.widget.LinearLayout(this);col.setOrientation(android.widget.LinearLayout.VERTICAL);col.setGravity(Gravity.CENTER);android.widget.TextView label=new android.widget.TextView(this);label.setText(labels[n]);label.setTextSize(14);col.addView(label);col.addView(pickers[n]);wheels.addView(col,new android.widget.LinearLayout.LayoutParams(0,-2,1));}
   android.widget.EditText manual=new android.widget.EditText(this);manual.setInputType(android.text.InputType.TYPE_CLASS_NUMBER);manual.setSingleLine(true);manual.setText(String.valueOf(initial));manual.setHint(timed?"总秒数":"days".equals(unit)?"天数":"次数");manual.setVisibility(View.GONE);content.addView(manual);
   android.widget.Button switchMode=new android.widget.Button(this);switchMode.setText("手动输入");content.addView(switchMode);
@@ -101,6 +114,24 @@ public class MainActivity extends Activity implements SensorEventListener {
   dialog.setOnShowListener(d->dialog.getButton(android.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{int value;try{value=manual.getVisibility()==View.VISIBLE?Integer.parseInt(manual.getText().toString()):timed?first.getValue()*3600+minutes.getValue()*60+seconds.getValue():first.getValue();}catch(Exception e){manual.setError("请输入整数");return;}if(value<min||value>max){if(manual.getVisibility()==View.VISIBLE)manual.setError("范围 "+min+"～"+max);else android.widget.Toast.makeText(this,"请选择 "+min+"～"+max+" 之间的数值",android.widget.Toast.LENGTH_SHORT).show();return;}reply.accept(value);dialog.dismiss();}));dialog.show();
  }
 
+ private void setProximity(boolean on,int token){
+  if(proximityListener!=null){sensors.unregisterListener(proximityListener);proximityListener=null;}
+  proximityToken=token;proximityCounter.reset();
+  if(!on||proximitySensor==null)return;
+  proximityListener=new SensorEventListener(){
+   public void onAccuracyChanged(Sensor sensor,int accuracy){}
+   public void onSensorChanged(SensorEvent event){
+    if(proximityToken!=token||event.values.length==0)return;
+    float distance=event.values[0];
+    if(proximityCounter.accept(distance,proximitySensor.getMaximumRange(),event.timestamp/1000000L))
+     js("window.onProximityRep&&window.onProximityRep("+token+")");
+    boolean near=distance<Math.min(5f,proximitySensor.getMaximumRange());
+    js("window.onProximityState&&window.onProximityState("+token+","+near+")");
+   }
+  };
+  boolean ok=sensors.registerListener(proximityListener,proximitySensor,SensorManager.SENSOR_DELAY_GAME);
+  if(!ok){sensors.unregisterListener(proximityListener);proximityListener=null;js("window.onProximityUnavailable&&window.onProximityUnavailable("+token+")");}
+ }
  private void setSensor(boolean on,double sensitivity){
   sensors.unregisterListener(this);sensorActive=false;hasGravity=false;counter.reset();
   if(!on)return;
@@ -121,7 +152,10 @@ public class MainActivity extends Activity implements SensorEventListener {
   if(counter.accept(vertical,now,threshold))js("window.onSensorRep&&window.onSensorRep()");
  }
  @Override public void onAccuracyChanged(Sensor s,int a){}
- @Override protected void onPause(){js("window.onAppPause&&window.onAppPause()");setSensor(false,threshold);super.onPause();}
+ @Override protected void onNewIntent(Intent intent){super.onNewIntent(intent);setIntent(intent);reminderPlanId=intent.getStringExtra("reminderPlanId");js("window.onReminderOpen&&window.onReminderOpen()");}
+ @Override public void onRequestPermissionsResult(int request,String[] permissions,int[] grants){super.onRequestPermissionsResult(request,permissions,grants);if(request==903){if(grants.length==0||grants[0]!=android.content.pm.PackageManager.PERMISSION_GRANTED)prefs.edit().putBoolean("reminderEnabled",false).apply();DailyReminders.schedule(this);js("window.onRemindersChanged&&window.onRemindersChanged()");}}
+ @Override protected void onResume(){super.onResume();DailyReminders.schedule(this);js("window.onRemindersChanged&&window.onRemindersChanged()");js("window.refreshHomeMessage&&window.refreshHomeMessage()");}
+ @Override protected void onPause(){js("window.onAppPause&&window.onAppPause()");setProximity(false,proximityToken+1);setSensor(false,threshold);super.onPause();}
  @Override public void onBackPressed(){js("window.onBack&&window.onBack()");}
- @Override protected void onDestroy(){setSensor(false,threshold);handler.removeCallbacksAndMessages(null);if(soundPool!=null){soundPool.release();soundPool=null;}if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
+ @Override protected void onDestroy(){setProximity(false,proximityToken+1);setSensor(false,threshold);handler.removeCallbacksAndMessages(null);if(soundPool!=null){soundPool.release();soundPool=null;}if(web!=null){web.removeJavascriptInterface("Native");web.destroy();web=null;}super.onDestroy();}
 }

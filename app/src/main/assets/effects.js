@@ -1,7 +1,7 @@
 'use strict';
 let audioContext=null,glassTimer=null;
 function initializeUpgrade(){
- data.settings=data.settings||{sound:true};if(typeof data.settings.sound!=='boolean')data.settings.sound=true;
+ data.settings=data.settings||{};data.settings.sound=true;
  data.bests=Array.isArray(data.bests)?data.bests:[];
  for(const log of data.logs)for(const set of log.sets){const unit=set.unit||'reps';let b=data.bests.find(b=>b.name===set.name&&b.unit===unit);if(!b){data.bests.push({name:set.name,unit,best:set.actual,date:log.date})}else if((!b.resetAt||Date.parse(log.completedAt||log.date+'T00:00:00')>Date.parse(b.resetAt))&&set.actual>b.best){b.best=set.actual;b.date=log.date}}
  normalizeSession();installUpgradeHandlers();if(!window.storageFault)save();
@@ -14,7 +14,7 @@ function sound(type='up'){
  if(type==='glass'){let n=Math.floor(ctx.sampleRate*.45),buffer=ctx.createBuffer(1,n,ctx.sampleRate),a=buffer.getChannelData(0);for(let i=0;i<n;i++)a[i]=(Math.random()*2-1)*Math.exp(-i/n*7)*.26;let source=ctx.createBufferSource(),filter=ctx.createBiquadFilter();source.buffer=buffer;filter.type='highpass';filter.frequency.value=2400;source.connect(filter);filter.connect(ctx.destination);source.start();for(let f of [2600,4100,5700]){let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(.055,t);g.gain.exponentialRampToValueAtTime(.0001,t+.38);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.4)}}else{let o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=type==='down'?440:type==='target'?1320:880;g.gain.setValueAtTime(.13,t);g.gain.exponentialRampToValueAtTime(.001,t+.07);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+.08)}}catch(e){}
 }
 function soundIcon(muted){return `<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>${muted?'<path d="M3 3l18 18" stroke="#1b2220" stroke-width="4"/><path d="M3 3l18 18"/>':''}</svg>`}
-function soundButton(){let label=data.settings.sound?'关闭声音':'开启声音';return button(soundIcon(!data.settings.sound),'sound','icon sound-toggle',`aria-label="${label}" title="${label}" aria-pressed="${data.settings.sound}"`)}
+function soundButton(){return ''}
 function toggleSound(){let old=data.settings.sound;data.settings.sound=!old;if(!save()){data.settings.sound=old;return}for(const b of document.querySelectorAll('.sound-toggle')){let label=data.settings.sound?'关闭声音':'开启声音';b.innerHTML=soundIcon(!data.settings.sound);b.setAttribute('aria-pressed',data.settings.sound);b.setAttribute('aria-label',label);b.setAttribute('title',label)}if(data.settings.sound)sound()}
 function recordBaseline(){const out={};for(const x of session.items)out[x.unit+':'+x.name]=bestFor(x.name,x.unit);return out}
 function checkRecord(x,value){
